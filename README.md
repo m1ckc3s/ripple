@@ -100,7 +100,3 @@ Swap in your own photos by replacing `public/image-a.png` and
 The original "Ripple with Noise" effect is by **Minsang
 ([@radiofun8](https://x.com/radiofun8))**, written as a Metal shader. This
 project is inspired by and recreated from that work — thanks for sharing it.
-
-## License
-
-[MIT](./LICENSE) © Mick Cesanek
