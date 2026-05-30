@@ -5,6 +5,8 @@ dissolves one photo into another — a glowing, noise-warped wavefront with
 chromatic fringing, recreated for the web and tunable live from a floating
 control panel until it looks exactly the way you want.
 
+<img width="800" height="884" alt="Screen Recording 2026-05-30 at 1 45 27 AM (1)" src="https://github.com/user-attachments/assets/e77ae880-c8ca-4adc-93e6-273976289f0d" />
+
 Inspired by [**Minsang** (@radiofun8)](https://x.com/radiofun8)'s "Ripple with
 Noise" Metal shader. This is a fresh implementation in **GLSL / WebGL** with
 **GSAP** driving the animation — significantly altered from the original, but
