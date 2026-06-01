@@ -27,7 +27,7 @@ original is Metal/MSL; this is GLSL/WebGL with meaningful changes (see
 | File | Role |
 | --- | --- |
 | `src/components/RippleTransition.tsx` | Everything: GLSL source (VERT/FRAG), WebGL setup, texture loading, GSAP trigger/scrub, `Params` type, `DEFAULT_PARAMS`, `EASE_OPTIONS`. |
-| `src/components/Controls.tsx` / `.css` | shadcn-style control panel (bottom-right) + Dev/Scrub section. |
+| `src/components/Controls.tsx` / `.css` | Collapsible, shadcn-style control panel (top-left) + Dev/Scrub section. Holds the `open` collapse state, the "Controls" pill, and the close (✕) button. |
 | `src/App.tsx` | Wires the component to the controls; holds `params` + `scrubValue` state. |
 | `public/image-a.png`, `image-b.png` | Demo images (Pinterest placeholders — not owned; see README). |
 
@@ -66,6 +66,29 @@ original is Metal/MSL; this is GLSL/WebGL with meaningful changes (see
   finishes (no mid-animation restarts/double-swaps). `scrub()` clears it.
 - **Dev scrub slider** sets `progress` directly (kills any tween) for
   frame-by-frame inspection. It scrubs the current direction.
+
+## Controls panel & responsiveness
+
+- **Collapse pattern** (matches the sibling `shimmering-dots` repo, but anchored
+  **top-left** instead of bottom-right): the panel and a "Controls" pill share
+  one fixed `.rc-root` anchor and cross-fade via scale + opacity, toggled by the
+  `open` state. The ✕ in the header collapses; the pill re-opens. Header buttons
+  (Reset + ✕) are matched to 26px; the bottom **Replay** uses the outlined
+  uppercase `.rc-secondary` style.
+- **`.rc-root` is `pointer-events: none`** — it's only a positioning anchor and
+  is sized to the (sometimes hidden) panel, so leaving it interactive made it
+  swallow taps over the canvas even while collapsed. The pill and the open panel
+  re-enable `pointer-events: auto` themselves.
+- **Breakpoint width:** mobile (`≤640px`) caps the panel at the **same 280px** as
+  desktop, not wider — otherwise the panel *grew* when crossing into mobile.
+  Below ~312px it shrinks via `calc(100vw - 32px)`.
+- **Image sizing** is computed once at mount from `window.innerWidth`: desktop
+  uses 0.7w / 0.86h, mobile (`≤640px`) uses 0.9w / 0.8h. It adapts on load /
+  rotation-then-reload, **not** live on desktop window drags (would require
+  re-running the WebGL setup on resize).
+- **Touch lock:** `html, body, #root` are `overflow: hidden` +
+  `overscroll-behavior: none`, and the image wrapper is `touch-action: none`, so
+  a touch-drag fires a tap (ripple) instead of scrolling/panning the canvas.
 
 ## Deviations from the original Metal shader
 
@@ -106,7 +129,8 @@ values, bake them into `DEFAULT_PARAMS`** so reloads/edits don't lose them.
 - Closer match to his **moderate cloud lobes** (his `noiseWarp` is lower than our
   1.0 default — 1.0 tends toward tendrils).
 - Wider-area melt: `Wave Width` up gives `Displacement` more room to act.
-- Touch/mobile input; multiple images beyond two; reduced-motion fallback.
+- Multiple images beyond two; reduced-motion fallback. (Basic touch/mobile
+  support — responsive layout, touch lock, collapsible panel — is now in place.)
 
 ## Credit
 

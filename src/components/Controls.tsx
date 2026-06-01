@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Params } from './RippleTransition'
 import { EASE_OPTIONS } from './RippleTransition'
 import './Controls.css'
@@ -48,14 +49,38 @@ export default function Controls({
   onScrub,
   onReplay,
 }: Props) {
+  const [open, setOpen] = useState(true)
+
   return (
-    <aside className="rc-panel">
-      <header className="rc-header">
-        <h2 className="rc-title">Ripple</h2>
-        <button className="rc-ghost" onClick={onReset} type="button">
-          Reset
-        </button>
-      </header>
+    <div className={`rc-root${open ? ' is-open' : ''}`}>
+      {/* Collapsed state: a pill in the top-left that expands into the panel. */}
+      <button
+        type="button"
+        className="rc-collapsed"
+        onClick={() => setOpen(true)}
+        aria-label="Open controls"
+      >
+        <SlidersIcon />
+        Controls
+      </button>
+
+      <aside className="rc-panel">
+        <header className="rc-header">
+          <h2 className="rc-title">Ripple</h2>
+          <div className="rc-header-actions">
+            <button className="rc-ghost" onClick={onReset} type="button">
+              Reset
+            </button>
+            <button
+              className="rc-icon-btn"
+              onClick={() => setOpen(false)}
+              type="button"
+              aria-label="Close controls"
+            >
+              <CloseIcon />
+            </button>
+          </div>
+        </header>
 
       <div className="rc-sliders">
         {SLIDERS.map((s) => (
@@ -131,10 +156,47 @@ export default function Controls({
             onChange={(e) => onScrub(parseFloat(e.target.value))}
           />
         </div>
-        <button className="rc-primary" onClick={onReplay} type="button">
+        <button className="rc-secondary" onClick={onReplay} type="button">
           Replay
         </button>
       </div>
-    </aside>
+      </aside>
+    </div>
+  )
+}
+
+function CloseIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M3.5 3.5l7 7M10.5 3.5l-7 7" />
+    </svg>
+  )
+}
+
+function SlidersIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M2 4h6M11 4h1M2 10h1M6 10h6" />
+      <circle cx="9.5" cy="4" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="4.5" cy="10" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
   )
 }

@@ -295,9 +295,12 @@ export default function RippleTransition({
       if (cancelled || !imgA) return
       const imgB = imgBraw ?? imgA // graceful fallback to single-image ripple
 
-      // Size the stage to image A
-      const maxW = window.innerWidth * 0.7
-      const maxH = window.innerHeight * 0.86
+      // Size the stage to image A. On narrow (mobile) viewports use nearly the
+      // full width so the image stays centered and prominent; on desktop leave
+      // room for the controls panel.
+      const isMobile = window.innerWidth <= 640
+      const maxW = window.innerWidth * (isMobile ? 0.9 : 0.7)
+      const maxH = window.innerHeight * (isMobile ? 0.8 : 0.86)
       const aspect = imgA.naturalWidth / imgA.naturalHeight
       let dispW = maxW
       let dispH = dispW / aspect
@@ -475,6 +478,8 @@ export default function RippleTransition({
         cursor: 'default',
         lineHeight: 0,
         background: '#141416',
+        // Tap fires the ripple, but a touch-drag shouldn't pan/scroll the image.
+        touchAction: 'none',
       }}
     >
       <canvas

@@ -48,8 +48,11 @@ the settled image.
 
 ## Live controls
 
-A shadcn-style panel (bottom-right) tunes every uniform in real time, plus a
-**Dev / Scrub** section to freeze and step through any frame of the animation:
+A collapsible, shadcn-style panel (top-left) tunes every uniform in real time,
+plus a **Dev / Scrub** section to freeze and step through any frame of the
+animation. Hit the **✕** to collapse it into a small "Controls" pill, and tap
+the pill to bring it back. The whole layout is responsive — on mobile the panel
+caps its width to the viewport and the image is centered and sized to fit.
 
 | Control | What it does |
 | --- | --- |
@@ -71,7 +74,7 @@ npm install
 npm run dev        # http://localhost:3000
 ```
 
-Click the image to fire the transition; tune it with the panel on the right.
+Click the image to fire the transition; tune it with the panel in the top-left.
 
 Other scripts:
 
