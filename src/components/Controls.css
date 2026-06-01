@@ -1,7 +1,8 @@
 .rc-panel {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  top: 50%;
+  left: 20px;
+  transform: translateY(-50%);
   width: 280px;
   max-height: calc(100vh - 40px);
   overflow-y: auto;
@@ -181,6 +182,52 @@
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.3),
     0 0 0 4px rgba(250, 250, 250, 0.2);
+}
+
+.rc-toggle-row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #d4d4d8;
+}
+
+.rc-switch {
+  box-sizing: border-box;
+  position: relative;
+  width: 36px;
+  height: 20px;
+  flex: none;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: background 140ms, border-color 140ms;
+}
+.rc-switch.is-on {
+  background: #fafafa;
+  border-color: #fafafa;
+}
+.rc-switch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(250, 250, 250, 0.2);
+}
+
+.rc-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fafafa;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  transition: transform 140ms, background 140ms;
+}
+.rc-switch.is-on .rc-switch-knob {
+  transform: translateX(16px);
+  background: #0a0a0b;
 }
 
 .rc-select {
