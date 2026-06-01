@@ -96,6 +96,19 @@ export default function Controls({
             ))}
           </select>
         </div>
+
+        <div className="rc-control rc-toggle-row">
+          <span>Pinch</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={params.pinch}
+            className={`rc-switch${params.pinch ? ' is-on' : ''}`}
+            onClick={() => onChange({ ...params, pinch: !params.pinch })}
+          >
+            <span className="rc-switch-knob" />
+          </button>
+        </div>
       </div>
 
       <div className="rc-dev">

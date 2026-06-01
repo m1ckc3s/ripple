@@ -11,6 +11,7 @@ export type Params = {
   noiseWarp: number
   duration: number
   ease: string
+  pinch: boolean
 }
 
 export const DEFAULT_PARAMS: Params = {
@@ -21,8 +22,9 @@ export const DEFAULT_PARAMS: Params = {
   caStrength: 0.02,
   glow: 0.73,
   noiseWarp: 1.0,
-  duration: 1.8,
+  duration: 1.4,
   ease: 'power2.inOut',
+  pinch: false,
 }
 
 export const EASE_OPTIONS = [
@@ -74,6 +76,7 @@ uniform float u_caStrength;
 uniform float u_glow;
 uniform float u_noiseWarp;
 uniform float u_swap;
+uniform float u_pinch;
 
 varying vec2 v_uv;
 
@@ -145,7 +148,27 @@ void main() {
 
   vec2 dir = (dist > 0.001) ? normalize(p) : vec2(0.0);
   float pushAmt = envelope * u_pushAmt;
-  vec2 uvOffset = dir * pushAmt;
+
+  // Poke/pinch: a smooth Gaussian dimple at the tap. Its slope (max around the
+  // rim, zero at the exact contact point and far away) pulls the surrounding
+  // image radially toward the center, so the sheet reads as physically pushed
+  // in — a lens dent that actually bends the picture, not painted-on shading.
+  // Driven by its own quick tween (u_pinch) so nothing lingers at rest.
+  float pinchSigma = 0.10;
+  float pinchG = exp(-dist * dist / (2.0 * pinchSigma * pinchSigma));
+  float pinchDisp = (dist / (pinchSigma * pinchSigma)) * pinchG * 0.01 * u_pinch;
+
+  // Pin the sheet to the frame: fade the dimple to zero as it nears any border
+  // so it can never drag the sample out of bounds (which clamps/smears the edge
+  // and bleeds the other image in). Like real paper anchored in a frame, the
+  // dent simply can't deform the very edge.
+  vec2 toEdge = min(uv, 1.0 - uv);
+  float edgeFade = smoothstep(0.0, 0.14, min(toEdge.x, toEdge.y));
+  pinchDisp *= edgeFade;
+
+  // Subtracting the pinch makes the band sample outward -> content gets sucked
+  // toward the tap, the characteristic "pushed-in" look.
+  vec2 uvOffset = dir * (pushAmt - pinchDisp);
   uvOffset.x /= aspect;
 
   float caStrength = envelope * u_caStrength;
@@ -185,6 +208,12 @@ void main() {
   // Color-dodge glow rides on the wavefront band
   float glow = envelope * u_glow;
   color.rgb = clamp(color.rgb / max(1.0 - glow, 0.01), 0.0, 1.0);
+
+  // Soft contact shadow pooling in the bottom of the dimple — smooth Gaussian,
+  // no high-frequency detail, so it adds depth to the poke without any of the
+  // hard radiating lines. Subtle so the geometric distortion stays the star.
+  color.rgb *= 1.0 - 0.16 * pinchG * edgeFade * u_pinch;
+  color.rgb = clamp(color.rgb, 0.0, 1.0);
 
   gl_FragColor = vec4(color.rgb, 1.0);
 }
@@ -325,12 +354,13 @@ export default function RippleTransition({
         glow: gl.getUniformLocation(program, 'u_glow'),
         noiseWarp: gl.getUniformLocation(program, 'u_noiseWarp'),
         swap: gl.getUniformLocation(program, 'u_swap'),
+        pinch: gl.getUniformLocation(program, 'u_pinch'),
       }
 
       gl.viewport(0, 0, canvas.width, canvas.height)
       gl.uniform2f(u.res, canvas.width, canvas.height)
 
-      const state = { progress: 0, cx: 0.5, cy: 0.5, swap: 0 }
+      const state = { progress: 0, cx: 0.5, cy: 0.5, swap: 0, pinch: 0 }
 
       const render = () => {
         const p = paramsRef.current
@@ -344,6 +374,7 @@ export default function RippleTransition({
         gl.uniform1f(u.glow, p.glow)
         gl.uniform1f(u.noiseWarp, p.noiseWarp)
         gl.uniform1f(u.swap, state.swap)
+        gl.uniform1f(u.pinch, state.pinch)
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
       }
       renderRef.current = render
@@ -359,7 +390,21 @@ export default function RippleTransition({
         if (cy !== undefined) state.cy = cy
         gsap.killTweensOf(state)
         state.progress = 0
+        state.pinch = 0
         animating = true
+
+        // Poke: a snappy push-in then release, on its own timeline so it lands
+        // before the wave launches and never dents the resting image.
+        if (paramsRef.current.pinch) {
+          gsap.to(state, {
+            keyframes: [
+              { pinch: 1, duration: 0.1, ease: 'power3.out' },
+              { pinch: 0, duration: 0.4, ease: 'power2.in' },
+            ],
+            onUpdate: render,
+          })
+        }
+
         gsap.to(state, {
           progress: 1,
           duration: paramsRef.current.duration,
@@ -380,6 +425,7 @@ export default function RippleTransition({
       const scrub = (progress: number) => {
         gsap.killTweensOf(state)
         animating = false
+        state.pinch = 0
         state.progress = progress
         render()
       }
@@ -426,7 +472,7 @@ export default function RippleTransition({
         position: 'relative',
         borderRadius: 32,
         overflow: 'hidden',
-        cursor: 'crosshair',
+        cursor: 'default',
         lineHeight: 0,
         background: '#141416',
       }}
