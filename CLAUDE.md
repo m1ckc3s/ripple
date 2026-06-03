@@ -42,9 +42,14 @@ original is Metal/MSL; this is GLSL/WebGL with meaningful changes (see
 
 ## How the effect works (fragment shader)
 
-1. **Wavefront** — `waveFront = progress × waveSpeed`. Distance from `u_center`
-   (the normalized tap point) is compared to it. A Gaussian envelope around the
-   front × a `cos(delta × waveFreq)` term defines the bright ripple band.
+1. **Wavefront** — `waveFront = progress × coverage`, where
+   `coverage = 1.0 + 0.5*noiseWarp + 0.1` is auto-derived so the front always
+   reaches the farthest corner (normalized distance maxes at 1.0) plus the noise
+   margin by `progress` 1 — the sweep completes on any canvas/aspect. Distance
+   from `u_center` (the normalized tap point) is compared to it. A Gaussian
+   envelope around the front × a `cos(delta × waveFreq)` term defines the bright
+   ripple band. (There is no Wave Speed uniform — see "Wave Speed → Transition
+   Speed" below.)
 2. **Noise warp** — two cartesian FBM layers (`p*4` and `p*12`, value-noise +
    Hermite smoothing) perturb the distance field into cloud lobes. Amplitude is
    scaled by `warpScale = smoothstep(0.0, 0.05, progress)` so it starts as a
@@ -64,8 +69,10 @@ original is Metal/MSL; this is GLSL/WebGL with meaningful changes (see
   no flicker — successive clicks alternate A→B, B→A, …
 - **Click guard:** `animating` flag ignores clicks until the current transition
   finishes (no mid-animation restarts/double-swaps). `scrub()` clears it.
-- **Dev scrub slider** sets `progress` directly (kills any tween) for
-  frame-by-frame inspection. It scrubs the current direction.
+- **Progress scrub slider** (bottom of the panel, above Replay) sets `progress`
+  directly (kills any tween) for frame-by-frame inspection. It scrubs the current
+  direction. (The old "Dev / Scrub" label row was removed — it's just the
+  Progress slider + Replay now.)
 
 ## Controls panel & responsiveness
 
@@ -106,12 +113,29 @@ original is Metal/MSL; this is GLSL/WebGL with meaningful changes (see
 
 ## Current defaults (`DEFAULT_PARAMS`)
 
-`waveSpeed 1.6 · sigma (Wave Width) 0.15 · waveFreq (Ripple Density) 5 ·
+`sigma (Wave Width) 0.15 · waveFreq (Ripple Density) 5 ·
 pushAmt (Displacement) 0.145 · caStrength (RGB Split) 0.02 · glow 0.73 ·
-noiseWarp 1.0 · duration 1.8 · ease power2.inOut`
+noiseWarp 1.0 · duration 1.4 · ease power2.inOut`
 
 These were dialed in by hand against reference frames. **When the user tunes new
 values, bake them into `DEFAULT_PARAMS`** so reloads/edits don't lose them.
+
+## Wave Speed → Transition Speed (control consolidation)
+
+- **Wave Speed was removed.** Its old completion-gating job is now automatic: the
+  shader uses `coverage` (above) as the front's endpoint, so the sweep always
+  finishes. The old default Wave Speed (1.6) equals `coverage` at the default
+  Noise Warp (1.0), so removing it left the animation **byte-identical** at
+  defaults.
+- **Why:** Wave Speed and Duration both read as "perceived speed"
+  (`screen speed ≈ waveSpeed × 1/duration`). The only thing Wave Speed uniquely
+  did post-completion-fix was an "overshoot/hold" (finishing early then lingering)
+  — too subtle to keep as a slider. So they were merged into one knob.
+- **"Transition Speed"** is the renamed `duration` param. The slider is
+  **inverted** in `Controls.tsx` (`value = DUR_MIN + DUR_MAX - duration`) so
+  right = faster, and the readout is a multiplier vs the 1.4s default
+  (`DUR_DEFAULT / duration`, so default shows `1.00×`). The underlying param is
+  still `duration` in seconds — GSAP reads it unchanged.
 
 ## Working conventions (learned this session)
 
@@ -121,7 +145,10 @@ values, bake them into `DEFAULT_PARAMS`** so reloads/edits don't lose them.
 - The user tunes the look **live via the sliders**, then asks to set defaults.
   Treat the control panel as the primary design surface.
 - Slider ranges live in `Controls.tsx` (`SLIDERS`). RGB Split max was raised to
-  `0.05` because `0.02` wasn't enough headroom.
+  `0.05` because `0.02` wasn't enough headroom. **Transition Speed** and
+  **Progress** are rendered as custom controls outside the `SLIDERS` array (the
+  former because of its inverted speed mapping, the latter because it drives
+  `scrub` rather than `params`).
 
 ## Possible next steps
 

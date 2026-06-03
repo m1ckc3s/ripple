@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 
 export type Params = {
-  waveSpeed: number
   sigma: number
   waveFreq: number
   pushAmt: number
@@ -15,7 +14,6 @@ export type Params = {
 }
 
 export const DEFAULT_PARAMS: Params = {
-  waveSpeed: 1.6,
   sigma: 0.15,
   waveFreq: 5,
   pushAmt: 0.145,
@@ -68,7 +66,6 @@ uniform sampler2D u_texB;
 uniform vec2 u_resolution;
 uniform vec2 u_center;
 uniform float u_progress;
-uniform float u_waveSpeed;
 uniform float u_sigma;
 uniform float u_waveFreq;
 uniform float u_pushAmt;
@@ -127,7 +124,15 @@ void main() {
   float noiseLarge = fbm(p * 4.0 + vec2(u_progress * 1.0, u_progress * 0.5), 4);
   float noiseSmall = fbm(p * 12.0 + vec2(u_progress * 2.0, -u_progress * 1.5), 3);
 
-  float waveFront = u_progress * u_waveSpeed;
+  // The front travels to full canvas coverage by progress 1, so the reveal
+  // always completes regardless of canvas dimensions. coverage clears the
+  // farthest corner (normDist maxes at 1.0 by construction) plus the positive
+  // Noise Warp margin; it's auto-derived from the already-normalized distance
+  // field, so it adapts to any aspect ratio / Noise Warp value. At the default
+  // Noise Warp (1.0) coverage == 1.6, matching the old Wave Speed default, so
+  // the animation is unchanged.
+  float coverage = 1.0 + 0.5 * u_noiseWarp + 0.1;
+  float waveFront = u_progress * coverage;
 
   // Brief ramp over the first 5% keeps a small clean seed at the very start,
   // then hands full authority to the Noise Warp slider for the rest.
@@ -349,7 +354,6 @@ export default function RippleTransition({
         res: gl.getUniformLocation(program, 'u_resolution'),
         center: gl.getUniformLocation(program, 'u_center'),
         progress: gl.getUniformLocation(program, 'u_progress'),
-        waveSpeed: gl.getUniformLocation(program, 'u_waveSpeed'),
         sigma: gl.getUniformLocation(program, 'u_sigma'),
         waveFreq: gl.getUniformLocation(program, 'u_waveFreq'),
         pushAmt: gl.getUniformLocation(program, 'u_pushAmt'),
@@ -369,7 +373,6 @@ export default function RippleTransition({
         const p = paramsRef.current
         gl.uniform2f(u.center, state.cx, state.cy)
         gl.uniform1f(u.progress, state.progress)
-        gl.uniform1f(u.waveSpeed, p.waveSpeed)
         gl.uniform1f(u.sigma, p.sigma)
         gl.uniform1f(u.waveFreq, p.waveFreq)
         gl.uniform1f(u.pushAmt, p.pushAmt)
