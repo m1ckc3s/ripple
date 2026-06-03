@@ -26,8 +26,9 @@ does the rest.
 ## The transition, technically
 
 - **Wavefront** — the distance from the tap point is compared against an
-  expanding radius (`progress × waveSpeed`). A Gaussian envelope around that
-  radius defines the active band; a cosine term inside it adds the ripples.
+  expanding radius (`progress × coverage`, where `coverage` is auto-derived from
+  the canvas so the sweep always finishes by the end). A Gaussian envelope around
+  that radius defines the active band; a cosine term inside it adds the ripples.
 - **Noise warp** — two layered cartesian FBM fields (value-noise, Hermite
   smoothing) perturb the distance field so the front breaks into organic cloud
   lobes instead of a clean ring. The warp amplitude ramps in over the first few
@@ -49,23 +50,22 @@ the settled image.
 ## Live controls
 
 A collapsible, shadcn-style panel (top-left) tunes every uniform in real time,
-plus a **Dev / Scrub** section to freeze and step through any frame of the
-animation. Hit the **✕** to collapse it into a small "Controls" pill, and tap
-the pill to bring it back. The whole layout is responsive — on mobile the panel
-caps its width to the viewport and the image is centered and sized to fit.
+plus a progress scrubber to freeze and step through any frame of the animation.
+Hit the **✕** to collapse it into a small "Controls" pill, and tap the pill to
+bring it back. The whole layout is responsive — on mobile the panel caps its
+width to the viewport and the image is centered and sized to fit.
 
 | Control | What it does |
 | --- | --- |
-| **Wave Speed** | How fast the wavefront expands outward. |
+| **Transition Speed** | How fast the whole transition plays (right = faster). |
 | **Wave Width** | Thickness of the Gaussian band the glow and displacement ride on. |
 | **Ripple Density** | Number of cosine ripples inside the band. |
 | **Displacement** | How hard pixels are pushed at the wavefront. |
 | **RGB Split** | Strength of the chromatic aberration. |
 | **Glow** | Intensity of the white color-dodge burn. |
 | **Noise Warp** | How turbulent / non-circular the front is. |
-| **Duration** | Length of the transition. |
 | **Easing** | GSAP easing curve for the `progress` tween. |
-| **Scrub** | Manually scrub progress 0 → 1 to inspect any frame. |
+| **Progress** | Manually scrub progress 0 → 1 to inspect any frame. |
 
 ## Try it locally
 
@@ -75,14 +75,6 @@ npm run dev        # http://localhost:3000
 ```
 
 Click the image to fire the transition; tune it with the panel in the top-left.
-
-Other scripts:
-
-```bash
-npm run build      # tsc -b && vite build
-npm run preview    # serve the production build
-npm run lint       # eslint .
-```
 
 Swap in your own photos by replacing `public/image-a.png` and
 `public/image-b.png`.

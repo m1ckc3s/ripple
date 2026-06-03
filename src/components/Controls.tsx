@@ -16,15 +16,20 @@ type SliderDef = {
 }
 
 const SLIDERS: SliderDef[] = [
-  { key: 'waveSpeed', label: 'Wave Speed', min: 0.3, max: 3, step: 0.05 },
   { key: 'sigma', label: 'Wave Width', min: 0.05, max: 0.5, step: 0.01 },
   { key: 'waveFreq', label: 'Ripple Density', min: 5, max: 100, step: 1 },
   { key: 'pushAmt', label: 'Displacement', min: 0, max: 0.5, step: 0.005 },
   { key: 'caStrength', label: 'RGB Split', min: 0, max: 0.05, step: 0.0005 },
   { key: 'glow', label: 'Glow', min: 0, max: 1, step: 0.01 },
   { key: 'noiseWarp', label: 'Noise Warp', min: 0, max: 1, step: 0.01 },
-  { key: 'duration', label: 'Duration', min: 0.3, max: 4, step: 0.05 },
 ]
+
+// Transition Speed maps onto `duration` (seconds) but inverted so the slider
+// reads as speed: dragging right shortens the duration (faster). The displayed
+// value is a multiplier relative to the default 1.4s (so default shows 1.0x).
+const DUR_MIN = 0.3
+const DUR_MAX = 4
+const DUR_DEFAULT = 1.4
 
 function formatValue(v: number, step: number) {
   const decimals =
@@ -83,6 +88,29 @@ export default function Controls({
         </header>
 
       <div className="rc-sliders">
+        <div className="rc-control">
+          <div className="rc-label">
+            <span>Transition Speed</span>
+            <span className="rc-value">
+              {(DUR_DEFAULT / params.duration).toFixed(2)}×
+            </span>
+          </div>
+          <input
+            className="rc-slider"
+            type="range"
+            min={DUR_MIN}
+            max={DUR_MAX}
+            step={0.05}
+            value={DUR_MIN + DUR_MAX - params.duration}
+            onChange={(e) =>
+              onChange({
+                ...params,
+                duration: DUR_MIN + DUR_MAX - parseFloat(e.target.value),
+              })
+            }
+          />
+        </div>
+
         {SLIDERS.map((s) => (
           <div key={s.key} className="rc-control">
             <div className="rc-label">
@@ -137,10 +165,6 @@ export default function Controls({
       </div>
 
       <div className="rc-dev">
-        <div className="rc-dev-head">
-          <span className="rc-dev-tag">Dev</span>
-          <span className="rc-dev-title">Scrub</span>
-        </div>
         <div className="rc-control">
           <div className="rc-label">
             <span>Progress</span>
