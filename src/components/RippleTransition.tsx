@@ -127,7 +127,20 @@ void main() {
   float noiseLarge = fbm(p * 4.0 + vec2(u_progress * 1.0, u_progress * 0.5), 4);
   float noiseSmall = fbm(p * 12.0 + vec2(u_progress * 2.0, -u_progress * 1.5), 3);
 
-  float waveFront = u_progress * u_waveSpeed;
+  // The front must travel far enough to clear the farthest corner (normDist
+  // maxes at 1.0 by construction) plus the positive Noise Warp margin, so the
+  // reveal always completes regardless of canvas dimensions. This coverage
+  // term is auto-derived from the already-normalized distance field, so it
+  // adapts to any aspect ratio / Noise Warp value.
+  float coverage = 1.0 + 0.5 * u_noiseWarp + 0.1;
+  float endpoint = max(u_waveSpeed, coverage);
+  // Bent ramp: it ends on endpoint at progress 1 (guaranteeing full coverage)
+  // but the correction term is ~0 early on, so a slow Wave Speed still looks
+  // slow as it expands. When waveSpeed >= coverage (e.g. the 1.6 default, where
+  // coverage == 1.6 exactly) the correction is zero and this is identical to the
+  // original u_progress * u_waveSpeed -- the default animation is unchanged.
+  float waveFront = u_progress * u_waveSpeed
+                  + (endpoint - u_waveSpeed) * pow(u_progress, 3.0);
 
   // Brief ramp over the first 5% keeps a small clean seed at the very start,
   // then hands full authority to the Noise Warp slider for the rest.
