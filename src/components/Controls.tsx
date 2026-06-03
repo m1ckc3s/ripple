@@ -150,6 +150,9 @@ export default function Controls({
           </select>
         </div>
 
+      </div>
+
+      <div className="rc-pinch">
         <div className="rc-control rc-toggle-row">
           <span>Pinch</span>
           <button
@@ -161,6 +164,24 @@ export default function Controls({
           >
             <span className="rc-switch-knob" />
           </button>
+        </div>
+
+        <div className="rc-control">
+          <div className="rc-label">
+            <span>Pinch Intensity</span>
+            <span className="rc-value">{params.pinchStrength.toFixed(2)}</span>
+          </div>
+          <input
+            className="rc-slider"
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={params.pinchStrength}
+            onChange={(e) =>
+              onChange({ ...params, pinchStrength: parseFloat(e.target.value) })
+            }
+          />
         </div>
       </div>
 

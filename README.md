@@ -14,10 +14,11 @@ the idea is his. Full credit below.
 
 ## What it is
 
-Click the image and a ripple expands from that point: a turbulent, cloud-like
-glowing band races outward, displacing and color-splitting the pixels at its
-edge, and behind it the photo dissolves into a second one. Click again and it
-transitions back the other way — it never restarts or snaps, it just reverses.
+Press anywhere on the image and a ripple expands from that point: a turbulent,
+cloud-like glowing band races outward, displacing and color-splitting the pixels
+at its edge, and behind it the photo dissolves into a second one. Press again and
+it transitions back the other way — it never restarts or snaps, it just reverses.
+The press also pokes a soft dimple into the sheet at the contact point.
 
 All the heavy lifting runs on the GPU in a single fragment shader on a
 full-screen quad. GSAP animates one `progress` uniform from 0 → 1; the shader
@@ -42,7 +43,7 @@ does the rest.
   creating the hot, smoky edge.
 - **Two-image ping-pong reveal** — behind the wavefront the base image is mixed
   into the target image. A `swap` flag flips base/target each time a transition
-  completes, so successive clicks alternate A→B, B→A, … seamlessly.
+  completes, so successive presses alternate A→B, B→A, … seamlessly.
 
 The wavefront fully dies out by the end of each run, so no distortion lingers on
 the settled image.
@@ -65,6 +66,8 @@ width to the viewport and the image is centered and sized to fit.
 | **Glow** | Intensity of the white color-dodge burn. |
 | **Noise Warp** | How turbulent / non-circular the front is. |
 | **Easing** | GSAP easing curve for the `progress` tween. |
+| **Pinch** | Toggles the soft dimple poked in at the press point (on by default). |
+| **Pinch Intensity** | How deep that dimple presses in. |
 | **Progress** | Manually scrub progress 0 → 1 to inspect any frame. |
 
 ## Try it locally
@@ -74,7 +77,7 @@ npm install
 npm run dev        # http://localhost:3000
 ```
 
-Click the image to fire the transition; tune it with the panel in the top-left.
+Press the image to fire the transition; tune it with the panel in the top-left.
 
 Swap in your own photos by replacing `public/image-a.png` and
 `public/image-b.png`.
