@@ -31,15 +31,6 @@ original is Metal/MSL; this is GLSL/WebGL with meaningful changes (see
 | `src/App.tsx` | Wires the component to the controls; holds `params` + `scrubValue` state. |
 | `public/image-a.png`, `image-b.png` | Demo images (Pinterest placeholders — not owned; see README). |
 
-## Running it
-
-- Dev server: `npm run dev` → **http://localhost:3000** (pinned via
-  `server.port: 3000` + `strictPort: true` in `vite.config.ts`, matching the
-  owner's other repos).
-- `.claude/launch.json` has a single `vite dev` entry on port 3000, started via
-  the Claude preview tool. Keep it to one entry — do not add a second
-  `vite preview` server.
-
 ## How the effect works (fragment shader)
 
 1. **Wavefront** — `waveFront = progress × coverage`, where
@@ -63,11 +54,18 @@ original is Metal/MSL; this is GLSL/WebGL with meaningful changes (see
 
 ## Interaction model
 
-- Click the canvas → ripple fires from the click point.
+- **Press the canvas → ripple + pinch fire from the press point.** The whole
+  effect is bound to `pointerdown` (mouse/touch/pen), not click — there is no
+  release/click path. `pointerdown` is guarded to the primary button, and pairs
+  with the image wrapper's `touch-action: none` so a press can't be a scroll.
+- **Pinch poke:** a snappy push-in dimple fires together with the wave when the
+  `pinch` toggle is on. Its depth is scaled by `pinchStrength` — the pinch tween
+  peaks at `pinchStrength` (no separate uniform; `u_pinch` already multiplies the
+  displacement). On by default at strength 0.3.
 - **Ping-pong:** on tween complete, `state.swap` toggles and `progress` resets to
   0 *in the same frame*. The new base equals the just-revealed image, so there's
-  no flicker — successive clicks alternate A→B, B→A, …
-- **Click guard:** `animating` flag ignores clicks until the current transition
+  no flicker — successive presses alternate A→B, B→A, …
+- **Press guard:** `animating` flag ignores presses until the current transition
   finishes (no mid-animation restarts/double-swaps). `scrub()` clears it.
 - **Progress scrub slider** (bottom of the panel, above Replay) sets `progress`
   directly (kills any tween) for frame-by-frame inspection. It scrubs the current
@@ -106,8 +104,8 @@ original is Metal/MSL; this is GLSL/WebGL with meaningful changes (see
   `atan` branch cut produced a visible seam radiating from the center (invisible
   in his hardcoded-center version, visible once center follows the tap).
 - **Tail gate** added so the wavefront dies out cleanly.
-- **Center parameterized** as `u_center` from the click.
-- **Ping-pong `u_swap`**, warp ramp, and click guard are all additions.
+- **Center parameterized** as `u_center` from the press point.
+- **Ping-pong `u_swap`**, warp ramp, and press guard are all additions.
 - **Texture orientation:** `UNPACK_FLIP_Y_WEBGL` is **false** (the vertex shader
   already flips v so screen-top → uv.y 0). Two flips = upside down; keep one.
 
@@ -115,7 +113,8 @@ original is Metal/MSL; this is GLSL/WebGL with meaningful changes (see
 
 `sigma (Wave Width) 0.15 · waveFreq (Ripple Density) 5 ·
 pushAmt (Displacement) 0.145 · caStrength (RGB Split) 0.02 · glow 0.73 ·
-noiseWarp 1.0 · duration 1.4 · ease power2.inOut`
+noiseWarp 1.0 · duration 1.4 · ease power2.inOut · pinch true ·
+pinchStrength (Pinch Intensity) 0.3`
 
 These were dialed in by hand against reference frames. **When the user tunes new
 values, bake them into `DEFAULT_PARAMS`** so reloads/edits don't lose them.
@@ -136,28 +135,6 @@ values, bake them into `DEFAULT_PARAMS`** so reloads/edits don't lose them.
   right = faster, and the readout is a multiplier vs the 1.4s default
   (`DUR_DEFAULT / duration`, so default shows `1.00×`). The underlying param is
   still `duration` in seconds — GSAP reads it unchanged.
-
-## Working conventions (learned this session)
-
-- **Prefer small, targeted `Edit`s over rewriting whole files.** Full rewrites
-  remount the component, reset `params` state, and wipe the user's live-tuned
-  slider values. This was a repeated pain point.
-- The user tunes the look **live via the sliders**, then asks to set defaults.
-  Treat the control panel as the primary design surface.
-- Slider ranges live in `Controls.tsx` (`SLIDERS`). RGB Split max was raised to
-  `0.05` because `0.02` wasn't enough headroom. **Transition Speed** and
-  **Progress** are rendered as custom controls outside the `SLIDERS` array (the
-  former because of its inverted speed mapping, the latter because it drives
-  `scrub` rather than `params`).
-
-## Possible next steps
-
-- Optional **auto-loop** mode (transition every N seconds, no click).
-- Closer match to his **moderate cloud lobes** (his `noiseWarp` is lower than our
-  1.0 default — 1.0 tends toward tendrils).
-- Wider-area melt: `Wave Width` up gives `Displacement` more room to act.
-- Multiple images beyond two; reduced-motion fallback. (Basic touch/mobile
-  support — responsive layout, touch lock, collapsible panel — is now in place.)
 
 ## Credit
 

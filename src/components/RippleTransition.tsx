@@ -11,6 +11,7 @@ export type Params = {
   duration: number
   ease: string
   pinch: boolean
+  pinchStrength: number
 }
 
 export const DEFAULT_PARAMS: Params = {
@@ -22,7 +23,8 @@ export const DEFAULT_PARAMS: Params = {
   noiseWarp: 1.0,
   duration: 1.4,
   ease: 'power2.inOut',
-  pinch: false,
+  pinch: true,
+  pinchStrength: 0.3,
 }
 
 export const EASE_OPTIONS = [
@@ -388,7 +390,11 @@ export default function RippleTransition({
 
       let animating = false
 
-      const trigger = (cx?: number, cy?: number) => {
+      const trigger = (
+        cx?: number,
+        cy?: number,
+        withPinch: boolean = paramsRef.current.pinch,
+      ) => {
         // Ignore triggers while a transition is in flight so rapid clicks can't
         // restart it or double-swap the images mid-animation.
         if (animating) return
@@ -399,12 +405,13 @@ export default function RippleTransition({
         state.pinch = 0
         animating = true
 
-        // Poke: a snappy push-in then release, on its own timeline so it lands
-        // before the wave launches and never dents the resting image.
-        if (paramsRef.current.pinch) {
+        // Poke: a snappy push-in then release, fired together with the wave (the
+        // toggle only picks whether the gesture is press or release). Peaks at
+        // pinchStrength so the slider scales how deep the dent goes.
+        if (withPinch) {
           gsap.to(state, {
             keyframes: [
-              { pinch: 1, duration: 0.1, ease: 'power3.out' },
+              { pinch: paramsRef.current.pinchStrength, duration: 0.1, ease: 'power3.out' },
               { pinch: 0, duration: 0.4, ease: 'power2.in' },
             ],
             onUpdate: render,
@@ -436,16 +443,26 @@ export default function RippleTransition({
         render()
       }
 
-      const handleClick = (e: MouseEvent) => {
+      const coords = (e: {
+        clientX: number
+        clientY: number
+      }): [number, number] => {
         const r = canvas.getBoundingClientRect()
-        trigger((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height)
+        return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]
       }
-      canvas.addEventListener('click', handleClick)
+      // The whole effect (pinch + wave) fires on press. pointerdown covers
+      // mouse, touch, and pen; with touch-action: none a press can't be a scroll.
+      const handlePointerDown = (e: PointerEvent) => {
+        if (e.button !== 0) return // primary button / touch / pen only
+        const [cx, cy] = coords(e)
+        trigger(cx, cy)
+      }
+      canvas.addEventListener('pointerdown', handlePointerDown)
 
       onReady?.({ trigger, scrub })
 
       cleanup = () => {
-        canvas.removeEventListener('click', handleClick)
+        canvas.removeEventListener('pointerdown', handlePointerDown)
         gsap.killTweensOf(state)
         renderRef.current = null
         gl.deleteTexture(texA)
