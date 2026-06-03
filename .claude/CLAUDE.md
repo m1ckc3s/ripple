@@ -31,15 +31,6 @@ original is Metal/MSL; this is GLSL/WebGL with meaningful changes (see
 | `src/App.tsx` | Wires the component to the controls; holds `params` + `scrubValue` state. |
 | `public/image-a.png`, `image-b.png` | Demo images (Pinterest placeholders — not owned; see README). |
 
-## Running it
-
-- Dev server: `npm run dev` → **http://localhost:3000** (pinned via
-  `server.port: 3000` + `strictPort: true` in `vite.config.ts`, matching the
-  owner's other repos).
-- `.claude/launch.json` has a single `vite dev` entry on port 3000, started via
-  the Claude preview tool. Keep it to one entry — do not add a second
-  `vite preview` server.
-
 ## How the effect works (fragment shader)
 
 1. **Wavefront** — `waveFront = progress × coverage`, where
@@ -144,28 +135,6 @@ values, bake them into `DEFAULT_PARAMS`** so reloads/edits don't lose them.
   right = faster, and the readout is a multiplier vs the 1.4s default
   (`DUR_DEFAULT / duration`, so default shows `1.00×`). The underlying param is
   still `duration` in seconds — GSAP reads it unchanged.
-
-## Working conventions (learned this session)
-
-- **Prefer small, targeted `Edit`s over rewriting whole files.** Full rewrites
-  remount the component, reset `params` state, and wipe the user's live-tuned
-  slider values. This was a repeated pain point.
-- The user tunes the look **live via the sliders**, then asks to set defaults.
-  Treat the control panel as the primary design surface.
-- Slider ranges live in `Controls.tsx` (`SLIDERS`). RGB Split max was raised to
-  `0.05` because `0.02` wasn't enough headroom. **Transition Speed** and
-  **Progress** are rendered as custom controls outside the `SLIDERS` array (the
-  former because of its inverted speed mapping, the latter because it drives
-  `scrub` rather than `params`).
-
-## Possible next steps
-
-- Optional **auto-loop** mode (transition every N seconds, no press).
-- Closer match to his **moderate cloud lobes** (his `noiseWarp` is lower than our
-  1.0 default — 1.0 tends toward tendrils).
-- Wider-area melt: `Wave Width` up gives `Displacement` more room to act.
-- Multiple images beyond two; reduced-motion fallback. (Basic touch/mobile
-  support — responsive layout, touch lock, collapsible panel — is now in place.)
 
 ## Credit
 
