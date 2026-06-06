@@ -1,52 +1,6 @@
 import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
-
-export type Params = {
-  sigma: number
-  waveFreq: number
-  pushAmt: number
-  caStrength: number
-  glow: number
-  noiseWarp: number
-  duration: number
-  ease: string
-  pinch: boolean
-  pinchStrength: number
-}
-
-export const DEFAULT_PARAMS: Params = {
-  sigma: 0.15,
-  waveFreq: 5,
-  pushAmt: 0.145,
-  caStrength: 0.02,
-  glow: 0.73,
-  noiseWarp: 1.0,
-  duration: 1.4,
-  ease: 'power2.inOut',
-  pinch: true,
-  pinchStrength: 0.3,
-}
-
-export const EASE_OPTIONS = [
-  { value: 'none', label: 'Linear' },
-  { value: 'power1.in', label: 'Ease In (soft)' },
-  { value: 'power2.in', label: 'Ease In' },
-  { value: 'power3.in', label: 'Ease In (strong)' },
-  { value: 'power1.out', label: 'Ease Out (soft)' },
-  { value: 'power2.out', label: 'Ease Out' },
-  { value: 'power3.out', label: 'Ease Out (strong)' },
-  { value: 'power2.inOut', label: 'Ease In-Out' },
-  { value: 'power3.inOut', label: 'Ease In-Out (strong)' },
-  { value: 'expo.out', label: 'Expo Out' },
-  { value: 'back.out(1.4)', label: 'Back Out' },
-]
-
-export type RippleHandle = {
-  /** Play the full animation from a normalized origin (defaults to last/center). */
-  trigger: (cx?: number, cy?: number) => void
-  /** Jump straight to a progress value [0,1] (kills any running tween). For scrubbing. */
-  scrub: (progress: number) => void
-}
+import type { Params, RippleHandle } from './rippleParams'
 
 const IMG_A = '/image-a.png'
 const IMG_B = '/image-b.png'
@@ -122,22 +76,12 @@ void main() {
   float maxDist = length(vec2(0.5 * aspect, 0.5));
   float normDist = clamp(dist / maxDist, 0.0, 1.0);
 
-  // Two cartesian fbm layers at different scales — no atan seam
   float noiseLarge = fbm(p * 4.0 + vec2(u_progress * 1.0, u_progress * 0.5), 4);
   float noiseSmall = fbm(p * 12.0 + vec2(u_progress * 2.0, -u_progress * 1.5), 3);
 
-  // The front travels to full canvas coverage by progress 1, so the reveal
-  // always completes regardless of canvas dimensions. coverage clears the
-  // farthest corner (normDist maxes at 1.0 by construction) plus the positive
-  // Noise Warp margin; it's auto-derived from the already-normalized distance
-  // field, so it adapts to any aspect ratio / Noise Warp value. At the default
-  // Noise Warp (1.0) coverage == 1.6, matching the old Wave Speed default, so
-  // the animation is unchanged.
   float coverage = 1.0 + 0.5 * u_noiseWarp + 0.1;
   float waveFront = u_progress * coverage;
 
-  // Brief ramp over the first 5% keeps a small clean seed at the very start,
-  // then hands full authority to the Noise Warp slider for the rest.
   float warpScale = smoothstep(0.0, 0.05, u_progress);
   float warpedDist = normDist
     + (noiseLarge - 0.5) * u_noiseWarp * warpScale
@@ -148,7 +92,6 @@ void main() {
   float ripples = max(0.0, cos(delta * u_waveFreq));
   float envelope = baseEnvelope * ripples;
 
-  // Ease in at start and fully die the glowing band out by the end
   float gate = smoothstep(0.0, 0.05, u_progress)
              * (1.0 - smoothstep(0.85, 1.0, u_progress));
   envelope *= gate;
@@ -156,25 +99,14 @@ void main() {
   vec2 dir = (dist > 0.001) ? normalize(p) : vec2(0.0);
   float pushAmt = envelope * u_pushAmt;
 
-  // Poke/pinch: a smooth Gaussian dimple at the tap. Its slope (max around the
-  // rim, zero at the exact contact point and far away) pulls the surrounding
-  // image radially toward the center, so the sheet reads as physically pushed
-  // in — a lens dent that actually bends the picture, not painted-on shading.
-  // Driven by its own quick tween (u_pinch) so nothing lingers at rest.
   float pinchSigma = 0.10;
   float pinchG = exp(-dist * dist / (2.0 * pinchSigma * pinchSigma));
   float pinchDisp = (dist / (pinchSigma * pinchSigma)) * pinchG * 0.01 * u_pinch;
 
-  // Pin the sheet to the frame: fade the dimple to zero as it nears any border
-  // so it can never drag the sample out of bounds (which clamps/smears the edge
-  // and bleeds the other image in). Like real paper anchored in a frame, the
-  // dent simply can't deform the very edge.
   vec2 toEdge = min(uv, 1.0 - uv);
   float edgeFade = smoothstep(0.0, 0.14, min(toEdge.x, toEdge.y));
   pinchDisp *= edgeFade;
 
-  // Subtracting the pinch makes the band sample outward -> content gets sucked
-  // toward the tap, the characteristic "pushed-in" look.
   vec2 uvOffset = dir * (pushAmt - pinchDisp);
   uvOffset.x /= aspect;
 
@@ -182,7 +114,6 @@ void main() {
   vec2 caOffset = dir * caStrength;
   caOffset.x /= aspect;
 
-  // Sample both images with the same wavefront displacement + chromatic aberration
   vec2 uvR = uv - uvOffset - caOffset;
   vec2 uvG = uv - uvOffset;
   vec2 uvB = uv - uvOffset + caOffset;
@@ -200,25 +131,17 @@ void main() {
     1.0
   );
 
-  // Reveal: behind the wavefront -> image B, ahead -> image A.
-  // feather softened by noise so the boundary is organic, not a hard ring.
   float feather = 0.04 + 0.05 * noiseLarge;
   float reveal = smoothstep(waveFront + feather, waveFront - feather, warpedDist);
   reveal *= smoothstep(0.0, 0.05, u_progress);
 
-  // u_swap flips which image is the base vs. the reveal target, so each trigger
-  // transitions in the opposite direction (A->B, then B->A) without resetting.
   vec4 base = mix(colorA, colorB, u_swap);
   vec4 target = mix(colorB, colorA, u_swap);
   vec4 color = mix(base, target, reveal);
 
-  // Color-dodge glow rides on the wavefront band
   float glow = envelope * u_glow;
   color.rgb = clamp(color.rgb / max(1.0 - glow, 0.01), 0.0, 1.0);
 
-  // Soft contact shadow pooling in the bottom of the dimple — smooth Gaussian,
-  // no high-frequency detail, so it adds depth to the poke without any of the
-  // hard radiating lines. Subtle so the geometric distortion stays the star.
   color.rgb *= 1.0 - 0.16 * pinchG * edgeFade * u_pinch;
   color.rgb = clamp(color.rgb, 0.0, 1.0);
 
@@ -282,8 +205,6 @@ export default function RippleTransition({
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const paramsRef = useRef(params)
-  paramsRef.current = params
-
   const renderRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
@@ -300,11 +221,8 @@ export default function RippleTransition({
         loadImage(imageB),
       ])
       if (cancelled || !imgA) return
-      const imgB = imgBraw ?? imgA // graceful fallback to single-image ripple
+      const imgB = imgBraw ?? imgA
 
-      // Size the stage to image A. On narrow (mobile) viewports use nearly the
-      // full width so the image stays centered and prominent; on desktop leave
-      // room for the controls panel.
       const isMobile = window.innerWidth <= 640
       const maxW = window.innerWidth * (isMobile ? 0.9 : 0.7)
       const maxH = window.innerHeight * (isMobile ? 0.8 : 0.86)
@@ -395,8 +313,6 @@ export default function RippleTransition({
         cy?: number,
         withPinch: boolean = paramsRef.current.pinch,
       ) => {
-        // Ignore triggers while a transition is in flight so rapid clicks can't
-        // restart it or double-swap the images mid-animation.
         if (animating) return
         if (cx !== undefined) state.cx = cx
         if (cy !== undefined) state.cy = cy
@@ -405,9 +321,6 @@ export default function RippleTransition({
         state.pinch = 0
         animating = true
 
-        // Poke: a snappy push-in then release, fired together with the wave (the
-        // toggle only picks whether the gesture is press or release). Peaks at
-        // pinchStrength so the slider scales how deep the dent goes.
         if (withPinch) {
           gsap.to(state, {
             keyframes: [
@@ -424,9 +337,6 @@ export default function RippleTransition({
           ease: paramsRef.current.ease,
           onUpdate: render,
           onComplete: () => {
-            // Flip direction and reset progress in the same frame. At progress 0
-            // the new base equals the image just revealed, so there's no flicker
-            // and the next trigger transitions the opposite way.
             state.swap = state.swap > 0.5 ? 0 : 1
             state.progress = 0
             animating = false
@@ -450,10 +360,8 @@ export default function RippleTransition({
         const r = canvas.getBoundingClientRect()
         return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]
       }
-      // The whole effect (pinch + wave) fires on press. pointerdown covers
-      // mouse, touch, and pen; with touch-action: none a press can't be a scroll.
       const handlePointerDown = (e: PointerEvent) => {
-        if (e.button !== 0) return // primary button / touch / pen only
+        if (e.button !== 0) return
         const [cx, cy] = coords(e)
         trigger(cx, cy)
       }
@@ -483,8 +391,8 @@ export default function RippleTransition({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageA, imageB])
 
-  // Re-render on param change so static tweaks preview live
   useEffect(() => {
+    paramsRef.current = params
     renderRef.current?.()
   }, [params])
 
@@ -498,7 +406,6 @@ export default function RippleTransition({
         cursor: 'default',
         lineHeight: 0,
         background: '#141416',
-        // Tap fires the ripple, but a touch-drag shouldn't pan/scroll the image.
         touchAction: 'none',
       }}
     >
