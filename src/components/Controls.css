@@ -5,14 +5,9 @@
   z-index: 10;
   font-family:
     ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  /* The root is just a positioning anchor and is sized to the (sometimes
-     hidden) panel. Make it click-through so the canvas underneath stays
-     tappable; the pill and open panel re-enable pointer events themselves. */
   pointer-events: none;
 }
 
-/* Collapsed pill — sits in the same top-left anchor as the panel and
-   cross-fades with it. */
 .rc-collapsed {
   position: absolute;
   top: 0;
@@ -63,8 +58,6 @@
   transition: transform 300ms ease, opacity 300ms ease;
 }
 
-/* Open ⇄ closed cross-fade. The two surfaces overlap at the top-left anchor;
-   whichever is hidden is scaled down, faded out, and click-through disabled. */
 .rc-collapsed {
   opacity: 1;
   transform: scale(1);
@@ -358,8 +351,6 @@
   transform: scale(0.98);
 }
 
-/* Bottom action — outlined, uppercase pill matching the sibling project's
-   reset button. */
 .rc-secondary {
   width: 100%;
   margin-top: 4px;
@@ -390,8 +381,6 @@
   letter-spacing: -0.005em;
 }
 
-/* Mobile: tighten the anchor and let the panel use the available width while
-   leaving the social links room in the top-right. */
 @media (max-width: 640px) {
   .rc-root {
     top: 16px;

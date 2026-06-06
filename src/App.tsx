@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react'
-import RippleTransition, {
+import RippleTransition from './components/RippleTransition'
+import {
   DEFAULT_PARAMS,
   type Params,
   type RippleHandle,
-} from './components/RippleTransition'
+} from './components/rippleParams'
 import Controls from './components/Controls'
 import './App.css'
 

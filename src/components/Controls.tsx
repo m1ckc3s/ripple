@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import type { Params } from './RippleTransition'
-import { EASE_OPTIONS } from './RippleTransition'
+import type { Params } from './rippleParams'
+import { EASE_OPTIONS } from './rippleParams'
 import './Controls.css'
 
 type NumericKey = {
@@ -24,9 +24,6 @@ const SLIDERS: SliderDef[] = [
   { key: 'noiseWarp', label: 'Noise Warp', min: 0, max: 1, step: 0.01 },
 ]
 
-// Transition Speed maps onto `duration` (seconds) but inverted so the slider
-// reads as speed: dragging right shortens the duration (faster). The displayed
-// value is a multiplier relative to the default 1.4s (so default shows 1.0x).
 const DUR_MIN = 0.3
 const DUR_MAX = 4
 const DUR_DEFAULT = 1.4
@@ -58,7 +55,6 @@ export default function Controls({
 
   return (
     <div className={`rc-root${open ? ' is-open' : ''}`}>
-      {/* Collapsed state: a pill in the top-left that expands into the panel. */}
       <button
         type="button"
         className="rc-collapsed"
